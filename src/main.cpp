@@ -5,6 +5,8 @@ const uint8_t ledPins[] = {8, 0, 1, 7, 6, 2, 3, 5, 4};
 const uint8_t zigzagLine[] = {2, 6, 0, 4, 8, 5, 1, 7, 3};
 const unsigned int stepDelay = 74;
 const uint8_t tailLength = 3;
+const unsigned long animationMinutes = 5; // Time in minutes for animation to run
+const unsigned long animationDuration = animationMinutes * 60000;
 
 volatile bool buttonPressed = false;
 
@@ -67,7 +69,7 @@ void loop() {
   }
 
   if (animating) {
-    if (millis() - animStart >= 300000) {
+    if (millis() - animStart >= animationDuration) {
       animating = false;
       allLEDsOff();
     } else {
@@ -78,7 +80,7 @@ void loop() {
         if (i >= tailLength) digitalWrite(zigzagLine[i - tailLength], LOW);
         delay(stepDelay);
         if (checkButton()) { animating = false; allLEDsOff(); break; }
-        if (millis() - animStart >= 300000) { animating = false; allLEDsOff(); break; }
+        if (millis() - animStart >= animationDuration) { animating = false; allLEDsOff(); break; }
       }
       
       for (int i = numLEDs - 1 + tailLength; i >= 0 && animating; i--) {
@@ -86,7 +88,7 @@ void loop() {
         if (i >= tailLength) digitalWrite(zigzagLine[i - tailLength], LOW);
         delay(stepDelay);
         if (checkButton()) { animating = false; allLEDsOff(); break; }
-        if (millis() - animStart >= 300000) { animating = false; allLEDsOff(); break; }
+        if (millis() - animStart >= animationDuration) { animating = false; allLEDsOff(); break; }
       }
 
       // Animation 2: Sequential sweep
@@ -94,7 +96,7 @@ void loop() {
         digitalWrite(ledPins[i], HIGH);
         delay(stepDelay);
         if (checkButton()) { animating = false; allLEDsOff(); break; }
-        if (millis() - animStart >= 300000) { animating = false; allLEDsOff(); break; }
+        if (millis() - animStart >= animationDuration) { animating = false; allLEDsOff(); break; }
         digitalWrite(ledPins[i], LOW);
       }
       
@@ -102,7 +104,7 @@ void loop() {
         digitalWrite(ledPins[i], HIGH);
         delay(stepDelay);
         if (checkButton()) { animating = false; allLEDsOff(); break; }
-        if (millis() - animStart >= 300000) { animating = false; allLEDsOff(); break; }
+        if (millis() - animStart >= animationDuration) { animating = false; allLEDsOff(); break; }
         digitalWrite(ledPins[i], LOW);
       }
 
@@ -112,7 +114,7 @@ void loop() {
         digitalWrite(ledPins[randLED], HIGH);
         delay(stepDelay);
         if (checkButton()) { animating = false; allLEDsOff(); break; }
-        if (millis() - animStart >= 300000) { animating = false; allLEDsOff(); break; }
+        if (millis() - animStart >= animationDuration) { animating = false; allLEDsOff(); break; }
         digitalWrite(ledPins[randLED], LOW);
       }
     }
