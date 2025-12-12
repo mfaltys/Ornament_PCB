@@ -26,6 +26,14 @@ void sleepNow() {
 }
 
 void setup() {
+  // Reduce clock speed to 1MHz for power savings
+  CPU_CCP = CCP_IOREG_gc;
+  CLKCTRL_MCLKCTRLB = CLKCTRL_PDIV_16X_gc | CLKCTRL_PEN_bm;
+  
+  // Disable unused peripherals
+  ADC0.CTRLA = 0;  // Disable ADC
+  AC0.CTRLA = 0;   // Disable analog comparator
+  
   PORTA.PIN3CTRL = PORT_PULLUPEN_bm;
   PORTA.PIN2CTRL = PORT_PULLUPEN_bm | PORT_ISC_FALLING_gc;
 
