@@ -1,12 +1,9 @@
-name: Build Ornament firmware
+name: Build Ornament animations
 
 on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
-      - '[0-9]*'
   pull_request:
     branches:
       - main
@@ -15,12 +12,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,37 +27,44 @@ jobs:
           python -m pip install --upgrade pip
           pip install platformio
 
-      - name: Build firmware
+      # Builds every [env:*] in platformio.ini, i.e. every animation.
+      - name: Build all animations
         run: pio run
 
-      - name: Prepare release artifacts
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          mkdir -p "release/ornament-${VERSION}"
-          cp .pio/build/attiny1614/firmware.hex "release/ornament-${VERSION}/firmware.hex"
-          cp .pio/build/attiny1614/firmware.elf "release/ornament-${VERSION}/firmware.elf"
-          cp src/main.cpp "release/ornament-${VERSION}/main.cpp"
-          (cd release && zip -j "ornament-${VERSION}.zip" "ornament-${VERSION}"/*)
-
-      - name: Publish GitHub release with artifacts
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            release/ornament-${{ env.VERSION }}.zip
-            release/ornament-${{ env.VERSION }}/firmware.hex
+          name: ornament-firmware
+          path: .pio/build/*/firmware.hex
+          if-no-files-found: error
 
       - name: Configure AWS credentials
-        if: startsWith(github.ref, 'refs/tags/')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-      - name: Upload firmware to S3
-        if: startsWith(github.ref, 'refs/tags/')
+      # Publishes each animation to s3://unixvoid-builds/ornament/<name>/firmware.hex.
+      # The env name is the animation name, so .pio/build/<name>/ maps directly onto
+      # the key layout the web flasher lists. Animations are living examples, so the
+      # keys are overwritten in place - there are no versions.
+      - name: Publish animations to S3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          aws s3 cp .pio/build/attiny1614/firmware.hex "s3://unixvoid-builds/ornament/${VERSION}/firmware.hex"
+          set -euo pipefail
+          published=0
+          for dir in .pio/build/*/; do
+            name="$(basename "$dir")"
+            hex="${dir}firmware.hex"
+            [ -f "$hex" ] || continue
+            echo "Publishing $name -> s3://unixvoid-builds/ornament/$name/firmware.hex"
+            aws s3 cp "$hex" "s3://unixvoid-builds/ornament/$name/firmware.hex"
+            published=$((published + 1))
+          done
+          if [ "$published" -eq 0 ]; then
+            echo "No firmware.hex files found - nothing was built." >&2
+            exit 1
+          fi
+          echo "Published $published animation(s)."
