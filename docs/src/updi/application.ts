@@ -421,6 +421,13 @@ export class UpdiApplication {
   }
 
   /**
+   * Closes the serial port and releases all resources
+   */
+  async destroy(): Promise<void> {
+    await this.phy.destroy();
+  }
+
+  /**
    * Performs a chip erase using the NVM controller
    */
   async chipErase(): Promise<void> {

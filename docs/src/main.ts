@@ -72,6 +72,10 @@ function handleError(error: unknown): string {
   return error instanceof Error ? error.message : 'Unknown error';
 }
 
+// Try the most likely UPDI baud rates; 230400 is the webupdi default that
+// matches the ATtiny1614's default UPDI clock, 115200 as fallback.
+const BAUD_RATES = [230400, 115200];
+
 async function connectDevice(): Promise<void> {
   if (!navigator.serial) {
     setStatus('Your browser does not support Web Serial. Please use Chrome, Edge, or Opera.', 'error');
@@ -87,32 +91,49 @@ async function connectDevice(): Promise<void> {
       port = await navigator.serial.requestPort();
     }
 
-    log('Opening serial port...');
-    app = new UpdiApplication(port, BAUD, DEVICE, 1000);
-    await app.init();
-    log('UPDI link established', 'success');
+    let lastError: unknown = null;
+    for (const baud of BAUD_RATES) {
+      try {
+        log(`Opening serial port at ${baud} baud...`);
+        app = new UpdiApplication(port, baud, DEVICE, 1000);
+        await app.init();
+        log('UPDI link established', 'success');
 
-    log('Checking device...');
-    await app.readDeviceInfo();
+        log('Checking device...');
+        await app.readDeviceInfo();
 
-    const sigrow = await app.readData(DEVICE.sigrowAddress, 3);
-    const deviceId = (sigrow[0] << 16) | (sigrow[1] << 8) | sigrow[2];
-    log(`Device ID: 0x${deviceId.toString(16).toUpperCase().padStart(6, '0')}`);
+        const sigrow = await app.readData(DEVICE.sigrowAddress, 3);
+        const deviceId = (sigrow[0] << 16) | (sigrow[1] << 8) | sigrow[2];
+        log(`Device ID: 0x${deviceId.toString(16).toUpperCase().padStart(6, '0')}`);
 
-    if (deviceId !== DEVICE.deviceId) {
-      throw new Error(`Expected an ATtiny1614 but found device ID 0x${deviceId.toString(16)}. Check that you are connected to the ornament.`);
+        if (deviceId !== DEVICE.deviceId) {
+          throw new Error(`Expected an ATtiny1614 but found device ID 0x${deviceId.toString(16)}. Check that you are connected to the ornament.`);
+        }
+        log('ATtiny1614 detected', 'success');
+
+        log('Entering programming mode...');
+        await app.enterProgmode();
+        log('Ready to flash', 'success');
+
+        deviceVerified = true;
+        connectLabel.textContent = 'Connected';
+        setStatus('Flasher connected, ornament detected', 'ok');
+        flashButton.disabled = !releases.length;
+        await loadReleases();
+        return;
+      } catch (error) {
+        lastError = error;
+        log(`Connection attempt at ${baud} baud failed: ${handleError(error)}`, 'warn');
+        await app?.destroy();
+        app = null;
+        deviceVerified = false;
+        // Close the port so the next attempt starts from a clean state
+        // (the physical layer reopens it with the next baud rate)
+        try { await port.close(); } catch { /* ignore */ }
+      }
     }
-    log('ATtiny1614 detected', 'success');
 
-    log('Entering programming mode...');
-    await app.enterProgmode();
-    log('Ready to flash', 'success');
-
-    deviceVerified = true;
-    connectLabel.textContent = 'Connected';
-    setStatus('Flasher connected, ornament detected', 'ok');
-    flashButton.disabled = !releases.length;
-    await loadReleases();
+    throw lastError ?? new Error('Connection failed');
   } catch (error) {
     log(`Connection failed: ${handleError(error)}`, 'error');
     setStatus('Connection failed - unplug and replug the flasher, then try again', 'error');
