@@ -7,6 +7,7 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: false,
+    minify: false,
     rollupOptions: {
       input: {
         main: 'index.html'
@@ -14,6 +15,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000
-  }
+    open: true,
+    port: 3000,
+  },
 });

@@ -2,7 +2,7 @@
  * NVM implementations on various UPDI device families
  */
 
-import { UpdiReadWrite } from "./readwrite.js";
+import { UpdiReadWrite } from "./readwrite.ts";
 
 /**
  * Base class for NVM

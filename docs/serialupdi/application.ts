@@ -2,17 +2,13 @@
  * Application layer for UPDI stack
  */
 
-import * as constants from "./constants.js";
-import { UpdiDatalink16bit, UpdiDatalink24bit } from "./link.js";
-import { UpdiPhysical } from "./physical.js";
-import { UpdiReadWrite } from "./readwrite.js";
-import { NvmUpdi } from "./nvm.js";
-import { NvmUpdiP0 } from "./nvmp0.js";
-import { Timeout } from "./timeout.js";
-// Trimmed for the Ornament flasher: only NVM version P:0 (tinyAVR 0/1/2, megaAVR 0)
-// is supported, since the ornament uses an ATtiny1614.
-// UPDI stack ported from https://github.com/manuelkasper/webupdi (MIT), which is
-// itself a port of pymcuprog.
+import * as constants from "./constants.ts";
+import { UpdiDatalink16bit, UpdiDatalink24bit } from "./link.ts";
+import { UpdiPhysical } from "./physical.ts";
+import { UpdiReadWrite } from "./readwrite.ts";
+import { NvmUpdi } from "./nvm.ts";
+import { NvmUpdiP0 } from "./nvmp0.ts";
+import { Timeout } from "./timeout.ts";
 
 interface SibInfo {
   family: string;
@@ -138,6 +134,9 @@ export class UpdiApplication {
       await datalink.initDatalink();
       this.readwrite = new UpdiReadWrite(datalink);
       this.nvm = new NvmUpdiP0(this.readwrite!, this.device);
+    } else if (sibInfo.NVM === "3") {
+    } else if (sibInfo.NVM === "4") {
+    } else if (sibInfo.NVM === "5") {
     } else {
       throw new Error("Unsupported NVM revision");
     }
@@ -418,23 +417,6 @@ export class UpdiApplication {
     } else {
       await this.readwrite!.writeCs(constants.UPDI_ASI_RESET_REQ, 0x00);
     }
-  }
-
-  /**
-   * Closes the serial port and releases all resources
-   */
-  async destroy(): Promise<void> {
-    await this.phy.destroy();
-  }
-
-  /**
-   * Performs a chip erase using the NVM controller
-   */
-  async chipErase(): Promise<void> {
-    if (!this.nvm) {
-      throw new Error('NVM driver not initialized');
-    }
-    await this.nvm.chipErase();
   }
 
   /**

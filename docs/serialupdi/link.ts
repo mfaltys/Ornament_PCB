@@ -2,8 +2,8 @@
  * Link layer in UPDI protocol stack
  */
 
-import * as constants from "./constants.js";
-import { UpdiPhysical } from "./physical.js";
+import * as constants from "./constants.ts";
+import { UpdiPhysical } from "./physical.ts";
 
 /**
  * UPDI data link class handles the UPDI data protocol within the device

@@ -2,7 +2,7 @@
  * Serial driver for UPDI stack
  */
 
-import * as constants from "./constants.js";
+import * as constants from "./constants.ts";
 
 const DEFAULT_SERIALUPDI_BAUD = 115200;
 

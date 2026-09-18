@@ -2,8 +2,8 @@
  * Read/write access provider for UPDI
  */
 
-import * as constants from "./constants.js";
-import { UpdiDatalink } from "./link.js";
+import * as constants from "./constants.ts";
+import { UpdiDatalink } from "./link.ts";
 
 /**
  * Provides various forms of reads and writes for UPDI applications

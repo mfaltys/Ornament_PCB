@@ -3,9 +3,9 @@
  * Present on tiny0, 1, 2 and mega0 (e.g: tiny817 -> mega4809)
  */
 
-import { NvmUpdi } from "./nvm.js";
-import { UpdiReadWrite } from "./readwrite.js";
-import { Timeout } from "./timeout.js";
+import { NvmUpdi } from "./nvm.ts";
+import { UpdiReadWrite } from "./readwrite.ts";
+import { Timeout } from "./timeout.ts";
 
 /**
  * Version P:0 UPDI NVM properties
