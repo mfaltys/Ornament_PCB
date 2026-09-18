@@ -34,6 +34,8 @@ jobs:
         run: |
           pio pkg install --global --platform "atmelmegaavr@1.9.0"
           cp boards/ATtiny1614.json ~/.platformio/platforms/atmelmegaavr/boards/
+          # Clear PlatformIO cache to ensure board discovery picks up the new board
+          rm -rf ~/.platformio/platforms/atmelmegaavr/.cache
 
       - name: Build firmware
         run: pio run -e attiny1614
