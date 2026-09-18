@@ -16,7 +16,7 @@ ISR(PORTA_PORT_vect) {
 }
 
 void sleepNow() {
-  set_sleep_mode(SLEEP_MODE_STANDBY);
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
   cli();
   sleep_enable();
   PORTA.INTFLAGS = PIN2_bm;

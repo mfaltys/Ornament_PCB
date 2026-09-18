@@ -23,22 +23,17 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.x'
 
       - name: Install PlatformIO
-        run: pip install platformio
-
-      - name: Install platform and custom board definition
         run: |
-          pio pkg install --global --platform "atmelmegaavr@1.9.0"
-          cp boards/ATtiny1614.json ~/.platformio/platforms/atmelmegaavr/boards/
-          # Clear PlatformIO cache to ensure board discovery picks up the new board
-          rm -rf ~/.platformio/platforms/atmelmegaavr/.cache
+          python -m pip install --upgrade pip
+          pip install platformio
 
       - name: Build firmware
-        run: pio run -e attiny1614
+        run: pio run
 
       - name: Prepare release artifacts
         if: startsWith(github.ref, 'refs/tags/')
