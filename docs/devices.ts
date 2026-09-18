@@ -1,4 +1,15 @@
-// Auto-generated from device definitions
+// Auto-generated from device definitions.
+//
+// WARNING: this table is what the UPDI stack trusts for memory layout, so wrong
+// values here cause confusing runtime failures rather than build errors.
+//
+// Verified against pymcuprog (generated from the Microchip.ATtiny_DFP device pack)
+// and the AVR device headers. Note in particular:
+//   flash_address = 0x8000 (MAPPED_PROGMEM_START) - NOT flash_size (0x4000).
+// Writing the page buffer to the wrong address makes the NVM controller raise
+// WRERROR, which surfaces as a bare "NVM error" from waitNvmReady().
+//
+// Peripheral bases come from P0_PERIPHERALS below.
 // Device info parameters for UPDI-enabled devices
 
 export interface DeviceInfo {
@@ -52,7 +63,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x20,
     eeprom_read_size: 0x01,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x4000,
     flash_page_size: 0x40,
     flash_read_size: 0x02,
@@ -71,7 +82,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x20,
     eeprom_read_size: 0x01,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x8000,
     flash_page_size: 0x80,
     flash_read_size: 0x02,
@@ -90,7 +101,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x20,
     eeprom_read_size: 0x01,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x8000,
     flash_page_size: 0x80,
     flash_read_size: 0x02,
@@ -109,7 +120,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x20,
     eeprom_read_size: 0x01,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x8000,
     flash_page_size: 0x80,
     flash_read_size: 0x02,
@@ -128,7 +139,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x20,
     eeprom_read_size: 0x01,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x8000,
     flash_page_size: 0x80,
     flash_read_size: 0x02,
@@ -147,7 +158,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x10,
     eeprom_read_size: 0x01,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x2000,
     flash_page_size: 0x40,
     flash_read_size: 0x02,
@@ -166,7 +177,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     eeprom_page_size: 0x20,
     eeprom_read_size: 0x02,
     eeprom_write_size: 0x01,
-    flash_address: 0x00004000,
+    flash_address: 0x00008000, // MAPPED_PROGMEM_START - flash is mapped into the data space at 0x8000, not 0x4000 (which is flash_size)
     flash_size: 0x2000,
     flash_page_size: 0x40,
     flash_read_size: 0x02,

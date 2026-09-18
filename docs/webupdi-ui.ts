@@ -320,7 +320,8 @@ async function programFile(): Promise<void> {
 
   const memoryConfig = {
     pageSize: selectedDevice.flash_page_size || 0x40,
-    startAddress: selectedDevice.flash_address || 0x4000,
+    // Flash is mapped into the data space at 0x8000 (MAPPED_PROGMEM_START), not 0x4000.
+    startAddress: selectedDevice.flash_address || 0x8000,
   };
 
   log('Programming flash...', 'info');
