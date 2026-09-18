@@ -93,43 +93,46 @@ async function connectDevice(): Promise<void> {
 
     let lastError: unknown = null;
     for (const baud of BAUD_RATES) {
-      try {
-        log(`Opening serial port at ${baud} baud...`);
-        app = new UpdiApplication(port, baud, DEVICE, 1000);
-        await app.init();
-        log('UPDI link established', 'success');
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          log(`Opening serial port at ${baud} baud (attempt ${attempt})...`);
+          app = new UpdiApplication(port, baud, DEVICE, 1000);
+          await app.init();
+          log('UPDI link established', 'success');
 
-        log('Checking device...');
-        await app.readDeviceInfo();
+          log('Checking device...');
+          await app.readDeviceInfo();
 
-        const sigrow = await app.readData(DEVICE.sigrowAddress, 3);
-        const deviceId = (sigrow[0] << 16) | (sigrow[1] << 8) | sigrow[2];
-        log(`Device ID: 0x${deviceId.toString(16).toUpperCase().padStart(6, '0')}`);
+          const sigrow = await app.readData(DEVICE.sigrowAddress, 3);
+          const deviceId = (sigrow[0] << 16) | (sigrow[1] << 8) | sigrow[2];
+          log(`Device ID: 0x${deviceId.toString(16).toUpperCase().padStart(6, '0')}`);
 
-        if (deviceId !== DEVICE.deviceId) {
-          throw new Error(`Expected an ATtiny1614 but found device ID 0x${deviceId.toString(16)}. Check that you are connected to the ornament.`);
+          if (deviceId !== DEVICE.deviceId) {
+            throw new Error(`Expected an ATtiny1614 but found device ID 0x${deviceId.toString(16)}. Check that you are connected to the ornament.`);
+          }
+          log('ATtiny1614 detected', 'success');
+
+          log('Entering programming mode...');
+          await app.enterProgmode();
+          log('Ready to flash', 'success');
+
+          deviceVerified = true;
+          connectLabel.textContent = 'Connected';
+          setStatus('Flasher connected, ornament detected', 'ok');
+          flashButton.disabled = !releases.length;
+          await loadReleases();
+          return;
+        } catch (error) {
+          lastError = error;
+          log(`Connection attempt at ${baud} baud failed: ${handleError(error)}`, 'warn');
+          await app?.destroy();
+          app = null;
+          deviceVerified = false;
+          // Close the port so the next attempt starts from a clean state
+          // (the physical layer reopens it with the next baud rate)
+          try { await port.close(); } catch { /* ignore */ }
+          await new Promise((resolve) => setTimeout(resolve, 250));
         }
-        log('ATtiny1614 detected', 'success');
-
-        log('Entering programming mode...');
-        await app.enterProgmode();
-        log('Ready to flash', 'success');
-
-        deviceVerified = true;
-        connectLabel.textContent = 'Connected';
-        setStatus('Flasher connected, ornament detected', 'ok');
-        flashButton.disabled = !releases.length;
-        await loadReleases();
-        return;
-      } catch (error) {
-        lastError = error;
-        log(`Connection attempt at ${baud} baud failed: ${handleError(error)}`, 'warn');
-        await app?.destroy();
-        app = null;
-        deviceVerified = false;
-        // Close the port so the next attempt starts from a clean state
-        // (the physical layer reopens it with the next baud rate)
-        try { await port.close(); } catch { /* ignore */ }
       }
     }
 
