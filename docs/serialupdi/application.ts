@@ -494,6 +494,19 @@ export class UpdiApplication {
   }
 
   /**
+   * Writes one fuse value. Address is the absolute fuse memory address
+   * (FUSE base 0x1280 + fuse offset, e.g. 0x1281 for BODCFG on tinyAVR 1-series).
+   * @param address absolute fuse address
+   * @param data single-byte value to write
+   */
+  async writeFuse(address: number, data: Uint8Array): Promise<void> {
+    if (!this.nvm) {
+      throw new Error('NVM driver not initialized');
+    }
+    await this.nvm.writeFuse(address, data);
+  }
+
+  /**
    * Tears down the UPDI physical layer and releases the serial port
    */
   async destroy(): Promise<void> {

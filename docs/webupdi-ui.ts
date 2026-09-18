@@ -307,6 +307,42 @@ async function loadAnimationFromS3(name: string): Promise<void> {
   disableConnectionButtons(true);
 }
 
+// Ornament is a coin-cell device: BOD must be fully disabled for battery life.
+// Matches platformio.ini board_fuses.BODCFG = 0x00 (LVL=1V8, ACTIVE=DISABLED, SLEEP=DISABLED).
+const BODCFG_OFFSET = 0x01;
+const BODCFG_DISABLED = 0x00;
+
+async function ensureBodDisabled(): Promise<void> {
+  checkConnected();
+  if (!selectedDevice) {
+    throw new Error('No device selected');
+  }
+  const fusesBase = selectedDevice.fuses_address ?? 0x1280;
+  const bodAddress = fusesBase + BODCFG_OFFSET;
+
+  // Fuses take effect after a Reset, so this runs AFTER flash programming so the
+  // pending reset cannot disturb the flash write/verify sequence. Chip erase does
+  // not touch fuses (NOT_ERASED), but writing last also keeps the flow idempotent.
+  const current = await app!.readData(bodAddress, 1);
+  const currentValue = current[0];
+  if (currentValue === BODCFG_DISABLED) {
+    log(`BOD already disabled (BODCFG=${formatHex(currentValue, 2)}), skipping fuse write`, 'info');
+    return;
+  }
+
+  log(`Disabling brown-out detector (BODCFG ${formatHex(currentValue, 2)} -> ${formatHex(BODCFG_DISABLED, 2)})...`, 'info');
+  await app!.enterProgmode();
+  await app!.writeFuse(bodAddress, new Uint8Array([BODCFG_DISABLED]));
+
+  const verify = await app!.readData(bodAddress, 1);
+  if (verify[0] !== BODCFG_DISABLED) {
+    throw new Error(
+      `BOD fuse verify failed: expected ${formatHex(BODCFG_DISABLED, 2)}, got ${formatHex(verify[0], 2)}`
+    );
+  }
+  log('Brown-out detector disabled (BODCFG=0x00)', 'success');
+}
+
 async function programFile(): Promise<void> {
   checkConnected();
 
@@ -376,6 +412,10 @@ async function programFile(): Promise<void> {
   }
 
   log(`"${prettyAnimationName(currentAnimation ?? 'animation')}" programmed and verified`, 'success');
+
+  // Always run at the END: chip erase never clears fuses, and the fuse write
+  // triggers a pending reset that must not interrupt flash programming.
+  await ensureBodDisabled();
 }
 
 export function initializeUI(): void {

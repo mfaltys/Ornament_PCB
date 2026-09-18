@@ -23,6 +23,8 @@ export interface DeviceInfo {
   flash_page_size?: number;
   flash_read_size?: number;
   flash_write_size?: number;
+  fuses_address?: number;
+  fuses_size?: number;
   user_row_address?: number;
   user_row_size?: number;
   user_row_page_size?: number;
@@ -68,6 +70,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x40,
     flash_read_size: 0x02,
     flash_write_size: 0x40,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x20,
     user_row_page_size: 0x01,
@@ -87,6 +90,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x80,
     flash_read_size: 0x02,
     flash_write_size: 0x80,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x40,
     user_row_page_size: 0x01,
@@ -106,6 +110,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x80,
     flash_read_size: 0x02,
     flash_write_size: 0x80,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x40,
     user_row_page_size: 0x01,
@@ -125,6 +130,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x80,
     flash_read_size: 0x02,
     flash_write_size: 0x80,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x40,
     user_row_page_size: 0x01,
@@ -144,6 +150,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x80,
     flash_read_size: 0x02,
     flash_write_size: 0x80,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x40,
     user_row_page_size: 0x01,
@@ -163,6 +170,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x40,
     flash_read_size: 0x02,
     flash_write_size: 0x40,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x20,
     user_row_page_size: 0x01,
@@ -182,6 +190,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     flash_page_size: 0x40,
     flash_read_size: 0x02,
     flash_write_size: 0x40,
+    fuses_address: 0x1280,
     user_row_address: 0x1300,
     user_row_size: 0x20,
     user_row_page_size: 0x01,
