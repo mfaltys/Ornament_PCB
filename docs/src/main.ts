@@ -15,7 +15,7 @@ const DEVICE = {
   flashPageSize: 0x40,
   deviceId: 0x1E9422,
 };
-const BAUD = 115200;
+const BAUD = 230400;
 
 interface Release {
   tag_name: string;
