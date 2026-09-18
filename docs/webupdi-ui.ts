@@ -182,6 +182,9 @@ async function autoSelectDeviceByID(): Promise<void> {
     if (matchedDeviceName) {
       selectedDevice = UPDI_DEVICES[matchedDeviceName];
       log(`Device detected: ${matchedDeviceName}`, 'success');
+      // Hand the definition to the UPDI stack, otherwise the NVM driver has no
+      // peripheral addresses and erasing/programming fails.
+      app.setDevice(selectedDevice);
     } else {
       throw new Error(`Unknown device ID: ${formatHex(deviceID, 6)}`);
     }

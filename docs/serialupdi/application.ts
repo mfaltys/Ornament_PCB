@@ -102,6 +102,21 @@ export class UpdiApplication {
   }
 
   /**
+   * Supplies the device definition after construction.
+   *
+   * The part number can only be discovered by reading the device ID over UPDI, which
+   * requires the datalink to be initialised first, so the definition cannot be passed
+   * to the constructor. Programming needs it: the NVM driver uses the peripheral base
+   * addresses (nvmctrlAddress) to reach the NVM controller registers.
+   */
+  setDevice(device: any): void {
+    this.device = device;
+    if (this.nvm) {
+      this.nvm.setDevice(device);
+    }
+  }
+
+  /**
    * Reads out device information from various sources
    * @returns Device information decoded from SIB
    */
@@ -142,7 +157,8 @@ export class UpdiApplication {
     }
 
     if (await this.inProgMode()) {
-      if (this.device !== null) {
+      // Only possible once the flasher has told us which part this is.
+      if (this.device) {
         const devid = await this.readData(this.device.sigrowAddress, 3);
         const devrev = await this.readData(this.device.syscfgAddress + 1, 1);
       }

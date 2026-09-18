@@ -17,6 +17,16 @@ export class NvmUpdi {
   }
 
   /**
+   * Updates the device definition used for peripheral addressing.
+   *
+   * The flasher only learns the part number after the UPDI datalink is up, so the
+   * device definition arrives after the NVM driver has been constructed.
+   */
+  setDevice(device: any): void {
+    this.device = device;
+  }
+
+  /**
    * Does a chip erase using the NVM controller
    */
   async chipErase(): Promise<void> {

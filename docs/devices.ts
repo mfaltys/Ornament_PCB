@@ -17,12 +17,35 @@ export interface DeviceInfo {
   user_row_page_size?: number;
   user_row_read_size?: number;
   user_row_write_size?: number;
+  sigrowAddress?: number;
+  syscfgAddress?: number;
+  nvmctrlAddress?: number;
   device_id?: number;
 }
+
+/**
+ * Peripheral base addresses (data space) for NVM revision P:0.
+ *
+ * These are identical across the tinyAVR 0/1/2-series and megaAVR 0-series parts,
+ * and are verified against the AVR device headers - see iotn1614.h:
+ *   #define SYSCFG   (*(SYSCFG_t *) 0x0F00)
+ *   #define NVMCTRL  (*(NVMCTRL_t *) 0x1000)
+ *   #define SIGROW   (*(SIGROW_t *) 0x1100)
+ *
+ * The UPDI NVM driver uses nvmctrlAddress to reach the erase/write control
+ * registers, so a device entry without it fails with
+ * "Cannot read properties of undefined (reading 'nvmctrlAddress')".
+ */
+const P0_PERIPHERALS = {
+  sigrowAddress: 0x1100,
+  syscfgAddress: 0x0f00,
+  nvmctrlAddress: 0x1000,
+} as const;
 
 export const UPDI_DEVICES: Record<string, DeviceInfo> = {
   // tinyAVR 0/1/2 Series - NVM version P:0
   'attiny1614': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9422,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
@@ -41,6 +64,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     user_row_write_size: 0x01,
   },
   'attiny1616': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9424,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
@@ -59,6 +83,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     user_row_write_size: 0x01,
   },
   'attiny1617': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9425,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
@@ -77,6 +102,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     user_row_write_size: 0x01,
   },
   'attiny3216': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9524,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
@@ -95,6 +121,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     user_row_write_size: 0x01,
   },
   'attiny3217': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9525,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
@@ -113,6 +140,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     user_row_write_size: 0x01,
   },
   'attiny814': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9324,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
@@ -131,6 +159,7 @@ export const UPDI_DEVICES: Record<string, DeviceInfo> = {
     user_row_write_size: 0x01,
   },
   'attiny816': {
+    ...P0_PERIPHERALS,
     device_id: 0x1E9326,
     eeprom_address: 0x00001400,
     eeprom_size: 0x0100,
