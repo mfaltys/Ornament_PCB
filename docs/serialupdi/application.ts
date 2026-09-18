@@ -465,4 +465,22 @@ export class UpdiApplication {
     }
     await this.nvm.eraseFlashPage(address);
   }
+
+  /**
+   * Erases the whole chip (flash and EEPROM) using the NVM controller.
+   * The device must be in NVM programming mode; re-enter it afterwards.
+   */
+  async chipErase(): Promise<void> {
+    if (!this.nvm) {
+      throw new Error('NVM driver not initialized');
+    }
+    await this.nvm.chipErase();
+  }
+
+  /**
+   * Tears down the UPDI physical layer and releases the serial port
+   */
+  async destroy(): Promise<void> {
+    await this.phy.destroy();
+  }
 }

@@ -7,14 +7,19 @@ import { UpdiApplication } from './serialupdi/application.js';
 import { parseHexFile } from './intel-hex-parser.js';
 import { UPDI_DEVICES, type DeviceInfo } from './devices.js';
 
-const S3_FIRMWARE_BASE = 'https://unixvoid-builds.s3.amazonaws.com/ornament/';
+// S3 layout produced by .github/workflows/build.yml:
+//   s3://unixvoid-builds/ornament/<animation>/firmware.hex
+const S3_BUCKET_URL = 'https://unixvoid-builds.s3.amazonaws.com';
+const S3_PREFIX = 'ornament/';
+const FIRMWARE_FILENAME = 'firmware.hex';
 
 let app: UpdiApplication | null = null;
 let port: SerialPort | null = null;
 let currentProgramData: Uint8Array | null = null;
 let currentProgramAddress: number = 0;
 let selectedDevice: DeviceInfo | null = null;
-let availableReleases: string[] = [];
+let availableAnimations: string[] = [];
+let currentAnimation: string | null = null;
 
 function formatHex(value: number, padLength: number = 4): string {
   return `0x${value.toString(16).padStart(padLength, '0').toUpperCase()}`;
@@ -70,9 +75,9 @@ function handleError(error: unknown, defaultMessage: string): string {
 }
 
 function disableConnectionButtons(connected: boolean): void {
-  const releaseSelect = getElement<HTMLSelectElement>('release-select');
+  const animationSelect = getElement<HTMLSelectElement>('animation-select');
   const programFileBtn = getElement<HTMLButtonElement>('btn-program-file');
-  if (releaseSelect) releaseSelect.disabled = !connected;
+  if (animationSelect) animationSelect.disabled = !connected;
   if (programFileBtn) programFileBtn.disabled = !connected || !currentProgramData;
 
   const connectBtn = getElement<HTMLButtonElement>('btn-connect');
@@ -113,8 +118,8 @@ async function connectToSerial(): Promise<void> {
     // Auto-detect device by reading device ID
     await autoSelectDeviceByID();
 
-    // Fetch firmware releases from S3
-    await fetchReleases();
+    // Load the list of available animations from S3
+    await fetchAnimations();
   } catch (error) {
     updateStatus('disconnected');
     disableConnectionButtons(false);
@@ -142,7 +147,9 @@ async function disconnectFromSerial(): Promise<void> {
   }
 
   currentProgramData = null;
+  currentProgramAddress = 0;
   selectedDevice = null;
+  currentAnimation = null;
 
   updateStatus('disconnected');
   disableConnectionButtons(false);
@@ -183,59 +190,106 @@ async function autoSelectDeviceByID(): Promise<void> {
   }
 }
 
-async function fetchReleases(): Promise<void> {
+function prettyAnimationName(name: string): string {
+  return name
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+/**
+ * Lists the animations published by CI at s3://unixvoid-builds/ornament/<name>/firmware.hex.
+ *
+ * Requires the bucket to allow public s3:ListBucket on the "ornament/" prefix plus a CORS
+ * rule permitting GET from this site. A failure here is logged but does not abort the
+ * serial connection, so the rest of the flasher stays usable.
+ */
+async function fetchAnimations(): Promise<void> {
   try {
-    const response = await fetch(`${S3_FIRMWARE_BASE}?list-type=2&prefix=&max-keys=1000`);
+    const url = `${S3_BUCKET_URL}/?list-type=2&max-keys=1000&prefix=${encodeURIComponent(S3_PREFIX)}`;
+    log('Loading animations from S3...', 'info');
+
+    const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to list S3 bucket: HTTP ${response.status}`);
+      const body = await response.text().catch(() => '');
+      const code = body.match(/<Code>([^<]+)<\/Code>/)?.[1];
+      throw new Error(`S3 returned HTTP ${response.status}${code ? ` (${code})` : ''}`);
     }
 
     const xmlText = await response.text();
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-    const keys = xmlDoc.getElementsByTagName('Key');
 
-    const versions = new Set<string>();
+    const errorCode = xmlDoc.getElementsByTagName('Code')[0]?.textContent;
+    if (errorCode) {
+      throw new Error(`S3 returned ${errorCode}`);
+    }
+
+    const keys = xmlDoc.getElementsByTagName('Key');
+    const animations = new Set<string>();
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i].textContent || '';
-      const match = key.match(/^(.+)\/firmware\.hex$/);
+      const match = key.match(/^ornament\/([^/]+)\/firmware\.hex$/);
       if (match) {
-        versions.add(match[1]);
+        animations.add(match[1]);
       }
     }
 
-    availableReleases = Array.from(versions).sort().reverse();
-    populateReleaseSelect();
+    availableAnimations = Array.from(animations).sort();
+    populateAnimationSelect();
+
+    if (availableAnimations.length === 0) {
+      log('No animations found in S3', 'warn');
+    } else {
+      log(`Found ${availableAnimations.length} animation(s)`, 'success');
+    }
   } catch (error) {
+    if (error instanceof TypeError) {
+      log('Could not reach S3 to list animations (network or CORS error)', 'error');
+      log(`Add a bucket CORS rule allowing GET from ${window.location.origin}`, 'warn');
+    } else {
+      log(`Could not list animations: ${handleError(error, 'Unknown error')}`, 'error');
+      log('The bucket must allow public s3:ListBucket on the "ornament/" prefix', 'warn');
+    }
   }
 }
 
-function populateReleaseSelect(): void {
-  const select = getElement<HTMLSelectElement>('release-select');
+function populateAnimationSelect(): void {
+  const select = getElement<HTMLSelectElement>('animation-select');
   if (!select) return;
+
+  const previous = select.value;
 
   select.innerHTML = '';
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = '-- Select firmware --';
+  placeholder.textContent = availableAnimations.length
+    ? '-- Select animation --'
+    : '-- No animations found --';
   select.appendChild(placeholder);
 
-  for (const version of availableReleases) {
+  for (const name of availableAnimations) {
     const option = document.createElement('option');
-    option.value = version;
-    option.textContent = version;
+    option.value = name;
+    option.textContent = prettyAnimationName(name);
     select.appendChild(option);
+  }
+
+  if (previous && availableAnimations.includes(previous)) {
+    select.value = previous;
   }
 }
 
-async function loadFirmwareFromS3(version: string): Promise<void> {
+async function loadAnimationFromS3(name: string): Promise<void> {
   checkConnected();
 
-  const hexUrl = `${S3_FIRMWARE_BASE}${version}/firmware.hex`;
+  const url = `${S3_BUCKET_URL}/${S3_PREFIX}${name}/${FIRMWARE_FILENAME}`;
+  log(`Loading "${prettyAnimationName(name)}"...`, 'info');
 
-  const response = await fetch(hexUrl);
+  const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to fetch firmware: HTTP ${response.status}`);
+    throw new Error(`Failed to fetch animation: HTTP ${response.status} ${response.statusText}`);
   }
 
   const hexContent = await response.text();
@@ -244,7 +298,9 @@ async function loadFirmwareFromS3(version: string): Promise<void> {
 
   currentProgramData = data;
   currentProgramAddress = address;
+  currentAnimation = name;
 
+  log(`Loaded "${prettyAnimationName(name)}" (${data.length} bytes)`, 'success');
   disableConnectionButtons(true);
 }
 
@@ -315,14 +371,14 @@ async function programFile(): Promise<void> {
     }
   }
 
-  log('Firmware verified successfully', 'success');
+  log(`"${prettyAnimationName(currentAnimation ?? 'animation')}" programmed and verified`, 'success');
 }
 
 export function initializeUI(): void {
   const connectBtn = getElement<HTMLButtonElement>('btn-connect');
   const disconnectBtn = getElement<HTMLButtonElement>('btn-disconnect');
   const programFileBtn = getElement<HTMLButtonElement>('btn-program-file');
-  const releaseSelect = getElement<HTMLSelectElement>('release-select');
+  const animationSelect = getElement<HTMLSelectElement>('animation-select');
   const btnClearLog = getElement<HTMLButtonElement>('btn-clear-log');
 
   if (connectBtn) {
@@ -343,17 +399,16 @@ export function initializeUI(): void {
     });
   }
 
-  if (releaseSelect) {
-    releaseSelect.addEventListener('change', async (e) => {
+  if (animationSelect) {
+    animationSelect.addEventListener('change', async (e) => {
       const select = e.target as HTMLSelectElement;
-      const version = select.value;
-      if (version) {
+      const name = select.value;
+      if (name) {
         try {
-          await loadFirmwareFromS3(version);
+          await loadAnimationFromS3(name);
         } catch (error) {
-          log(`Failed to load firmware: ${handleError(error, 'Unknown error')}`, 'error');
+          log(`Failed to load animation: ${handleError(error, 'Unknown error')}`, 'error');
         }
-        select.selectedIndex = 0;
       }
     });
   }
